@@ -537,3 +537,46 @@
   font-size: 14px;
   font-weight: 600;
 }
+
+.notification-wrapper {
+  position: relative;
+}
+
+.bell {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+  padding-right: 22px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.notifications-box {
+  position: absolute;
+  top: 42px;
+  right: 10px;
+  width: 260px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  z-index: 10;
+}
+
+.notifications-box h4 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #0f172a;
+}
+
+.notifications-box p {
+  font-size: 14px;
+  color: #475569;
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.notifications-box p:last-child {
+  border-bottom: none;
+}
