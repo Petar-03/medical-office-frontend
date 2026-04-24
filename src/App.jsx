@@ -7,6 +7,7 @@ import Topbar from "./components/Topbar";
 import Home from "./pages/Home";
 import Patients from "./pages/Patients";
 import Appointments from "./pages/Appointments";
+import Services from "./pages/Services";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/patients" element={<Patients />} />
+          <Route path="/services" element={<Services />} />
         </Routes>
       </main>
     </div>

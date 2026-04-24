@@ -23,6 +23,9 @@ function Sidebar() {
         <NavLink to="/patients" className="nav-link">
           👥 Пациенти
         </NavLink>
+        <NavLink to="/services" className="nav-link">
+          🩺 Услуги
+        </NavLink>
       </nav>
     </aside>
   );
