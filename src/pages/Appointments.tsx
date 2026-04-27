@@ -1,7 +1,22 @@
-import { useState } from "react";
+import { type ChangeEvent, type FormEvent, useState } from "react";
+
+type AppointmentStatus =
+  | "Предстоящ"
+  | "Приключен"
+  | "Отменен";
+
+type Appointment = {
+  id: number;
+  time: string;
+  patientName: string;
+  type: string;
+  status: AppointmentStatus;
+};
+
+type AppointmentFormData = Omit<Appointment, "id">;
 
 function Appointments() {
-  const [appointments, setAppointments] = useState([
+  const [appointments, setAppointments] = useState<Appointment[]>([
     {
       id: 1,
       time: "09:00",
@@ -18,15 +33,15 @@ function Appointments() {
     },
   ]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AppointmentFormData>({
     time: "",
     patientName: "",
     type: "",
     status: "Предстоящ",
   });
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<number | null>(null);
 
-  function handleChange(event) {
+  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.target;
 
     setFormData({
@@ -35,7 +50,7 @@ function Appointments() {
     });
   }
 
-  function handleSubmit(event) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (
@@ -83,7 +98,7 @@ function Appointments() {
       status: "Предстоящ",
     });
   }
-  function deleteAppointment(id) {
+  function deleteAppointment(id: number) {
     const filteredAppointments = appointments.filter(
       (appointment) => appointment.id !== id
     );
@@ -91,7 +106,7 @@ function Appointments() {
     setAppointments(filteredAppointments);
   }
 
-  function editAppointment(appointment) {
+  function editAppointment(appointment: Appointment) {
     setFormData({
       time: appointment.time,
       patientName: appointment.patientName,

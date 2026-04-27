@@ -1,7 +1,18 @@
-import { useState } from "react";
+import { type ChangeEvent, type FormEvent, useState } from "react";
+
+type Patient = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  address: string;
+};
+
+type PatientFormData = Omit<Patient, "id">;
 
 function Patients() {
-  const [patients, setPatients] = useState([
+  const [patients, setPatients] = useState<Patient[]>([
     {
       id: 1,
       firstName: "Мария",
@@ -28,7 +39,7 @@ function Patients() {
     },
   ]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PatientFormData>({
     firstName: "",
     lastName: "",
     phone: "",
@@ -36,7 +47,7 @@ function Patients() {
     address: "",
   });
 
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState("");
 
   const filteredPatients = patients.filter((patient) => {
@@ -49,7 +60,7 @@ function Patients() {
       patient.address.toLowerCase().includes(searchText.toLowerCase())
     );
   });
-  function handleChange(event) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
 
     setFormData({
@@ -58,7 +69,7 @@ function Patients() {
     });
   }
 
-  function handleSubmit(event) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (
@@ -112,12 +123,12 @@ function Patients() {
     });
   }
 
-  function deletePatient(id) {
+  function deletePatient(id: number) {
     const filteredPatients = patients.filter((patient) => patient.id !== id);
     setPatients(filteredPatients);
   }
 
-  function editPatient(patient) {
+  function editPatient(patient: Patient) {
     setFormData({
       firstName: patient.firstName,
       lastName: patient.lastName,
@@ -242,7 +253,7 @@ function Patients() {
             ))}
             {filteredPatients.length === 0 && (
               <tr>
-                <td colSpan="5" className="empty-message">
+                <td colSpan={5} className="empty-message">
                   Няма намерени пациенти.
                 </td>
               </tr>

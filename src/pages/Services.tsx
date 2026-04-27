@@ -1,7 +1,16 @@
-import { useState } from "react";
+import { type ChangeEvent, type FormEvent, useState } from "react";
+
+type Service = {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+};
+
+type ServiceFormData = Omit<Service, "id">;
 
 function Services() {
-  const [services, setServices] = useState([
+  const [services, setServices] = useState<Service[]>([
     {
       id: 1,
       name: "Първичен преглед",
@@ -22,15 +31,15 @@ function Services() {
     },
   ]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ServiceFormData>({
     name: "",
     description: "",
     price: "",
   });
 
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<number | null>(null);
 
-  function handleChange(event) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
 
     setFormData({
@@ -39,7 +48,7 @@ function Services() {
     });
   }
 
-  function handleSubmit(event) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (
@@ -85,12 +94,12 @@ function Services() {
     });
   }
 
-  function deleteService(id) {
+  function deleteService(id: number) {
     const filteredServices = services.filter((service) => service.id !== id);
     setServices(filteredServices);
   }
 
-  function editService(service) {
+  function editService(service: Service) {
     setFormData({
       name: service.name,
       description: service.description,

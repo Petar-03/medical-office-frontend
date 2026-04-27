@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "dev:nodemon": "nodemon --watch src --watch index.html --watch vite.config.ts --ext ts,tsx,css,html --exec vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -23,6 +25,9 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "nodemon": "^3.1.14",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.0",
     "vite": "^8.0.10"
   }
 }
