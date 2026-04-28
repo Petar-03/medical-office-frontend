@@ -1,4 +1,5 @@
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { apiRequest, getDoctorId } from "../api/client";
 
 type Patient = {
   id: number;
@@ -12,33 +13,7 @@ type Patient = {
 type PatientFormData = Omit<Patient, "id">;
 
 function Patients() {
-  const [patients, setPatients] = useState<Patient[]>([
-    {
-      id: 1,
-      firstName: "Мария",
-      lastName: "Петрова",
-      phone: "0888123456",
-      email: "maria@example.com",
-      address: "Варна",
-    },
-    {
-      id: 2,
-      firstName: "Иван",
-      lastName: "Георгиев",
-      phone: "0877123456",
-      email: "ivan@example.com",
-      address: "Варна",
-    },
-    {
-      id: 3,
-      firstName: "Елица",
-      lastName: "Николова",
-      phone: "0899123456",
-      email: "elitsa@example.com",
-      address: "Добрич",
-    },
-  ]);
-
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [formData, setFormData] = useState<PatientFormData>({
     firstName: "",
     lastName: "",
@@ -49,6 +24,35 @@ function Patients() {
 
   const [editId, setEditId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function loadPatients() {
+    try {
+      setIsLoading(true);
+      setError("");
+      const doctorId = getDoctorId();
+      const data = await apiRequest<Patient[]>(`/doctors/${doctorId}/patients`);
+      setPatients(data);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при зареждане на пациенти."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadPatients();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const filteredPatients = patients.filter((patient) => {
     const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
@@ -69,8 +73,9 @@ function Patients() {
     });
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
 
     if (
       formData.firstName === "" ||
@@ -83,49 +88,63 @@ function Patients() {
       return;
     }
 
-    if (editId !== null) {
-      const updatedPatients = patients.map((patient) => {
-        if (patient.id === editId) {
-          return {
-            ...patient,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            phone: formData.phone,
-            email: formData.email,
-            address: formData.address,
-          };
-        }
+    try {
+      setIsSaving(true);
+      const doctorId = getDoctorId();
+      const patient =
+        editId !== null
+          ? await apiRequest<Patient>(`/doctors/${doctorId}/patients/${editId}`, {
+              method: "PUT",
+              body: JSON.stringify(formData),
+            })
+          : await apiRequest<Patient>(`/doctors/${doctorId}/patients`, {
+              method: "POST",
+              body: JSON.stringify(formData),
+            });
 
-        return patient;
-      });
-
-      setPatients(updatedPatients);
+      setPatients((currentPatients) =>
+        editId !== null
+          ? currentPatients.map((currentPatient) =>
+              currentPatient.id === editId ? patient : currentPatient
+            )
+          : [...currentPatients, patient]
+      );
       setEditId(null);
-    } else {
-      const newPatient = {
-        id: Date.now(),
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
-        email: formData.email,
-        address: formData.address,
-      };
-
-      setPatients([...patients, newPatient]);
+      setFormData({
+        firstName: "",
+        lastName: "",
+        phone: "",
+        email: "",
+        address: "",
+      });
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при запазване на пациент."
+      );
+    } finally {
+      setIsSaving(false);
     }
-
-    setFormData({
-      firstName: "",
-      lastName: "",
-      phone: "",
-      email: "",
-      address: "",
-    });
   }
 
-  function deletePatient(id: number) {
-    const filteredPatients = patients.filter((patient) => patient.id !== id);
-    setPatients(filteredPatients);
+  async function deletePatient(id: number) {
+    try {
+      setError("");
+      const doctorId = getDoctorId();
+      await apiRequest(`/doctors/${doctorId}/patients/${id}`, {
+        method: "DELETE",
+      });
+      setPatients((currentPatients) =>
+        currentPatients.filter((patient) => patient.id !== id)
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при изтриване на пациент."
+      );
+    }
   }
 
   function editPatient(patient: Patient) {
@@ -195,8 +214,12 @@ function Patients() {
             onChange={handleChange}
           />
 
-          <button type="submit" className="primary-btn">
-            {editId === null ? "+ Добави пациент" : "Запази промените"}
+          <button type="submit" className="primary-btn" disabled={isSaving}>
+            {isSaving
+              ? "Запазване..."
+              : editId === null
+                ? "+ Добави пациент"
+                : "Запази промените"}
           </button>
         </form>
       </div>
@@ -213,6 +236,9 @@ function Patients() {
             onChange={(event) => setSearchText(event.target.value)}
           />
         </div>
+
+        {error && <p className="form-message form-message-error">{error}</p>}
+        {isLoading && <p className="empty-message">Зареждане...</p>}
 
         <table className="patients-table">
           <thead>

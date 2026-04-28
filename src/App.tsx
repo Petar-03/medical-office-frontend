@@ -13,8 +13,17 @@ import Services from "./pages/Services";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
-    localStorage.getItem("isLoggedIn") === "true"
+    localStorage.getItem("isLoggedIn") === "true" &&
+      Boolean(localStorage.getItem("authToken"))
   );
+
+  function handleLogout() {
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("doctorId");
+    localStorage.removeItem("doctor");
+    setIsLoggedIn(false);
+  }
 
   if (!isLoggedIn) {
     return <Login onLogin={() => setIsLoggedIn(true)} />;
@@ -24,7 +33,7 @@ function App() {
       <Sidebar />
 
       <main className="main">
-        <Topbar />
+        <Topbar onLogout={handleLogout} />
 
         <Routes>
           <Route path="/" element={<Home />} />

@@ -1,45 +1,90 @@
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { apiRequest, getDoctorId } from "../api/client";
 
-type AppointmentStatus =
-  | "Предстоящ"
-  | "Приключен"
-  | "Отменен";
+type AppointmentStatus = "Предстоящ" | "Приключен" | "Отменен";
 
 type Appointment = {
   id: number;
-  time: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  patientId: number;
+  serviceId: number;
   patientName: string;
   type: string;
   status: AppointmentStatus;
 };
 
-type AppointmentFormData = Omit<Appointment, "id">;
+type Patient = {
+  id: number;
+  firstName: string;
+  lastName: string;
+};
+
+type Service = {
+  id: number;
+  name: string;
+};
+
+type AppointmentFormData = {
+  appointmentDate: string;
+  appointmentTime: string;
+  patientId: string;
+  serviceId: string;
+  status: AppointmentStatus;
+};
+
+const today = new Date().toISOString().slice(0, 10);
+
+const emptyFormData: AppointmentFormData = {
+  appointmentDate: today,
+  appointmentTime: "",
+  patientId: "",
+  serviceId: "",
+  status: "Предстоящ",
+};
 
 function Appointments() {
-  const [appointments, setAppointments] = useState<Appointment[]>([
-    {
-      id: 1,
-      time: "09:00",
-      patientName: "Мария Петрова",
-      type: "Контролен преглед",
-      status: "Предстоящ",
-    },
-    {
-      id: 2,
-      time: "10:30",
-      patientName: "Иван Георгиев",
-      type: "Консултация",
-      status: "Предстоящ",
-    },
-  ]);
-
-  const [formData, setFormData] = useState<AppointmentFormData>({
-    time: "",
-    patientName: "",
-    type: "",
-    status: "Предстоящ",
-  });
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [formData, setFormData] = useState<AppointmentFormData>(emptyFormData);
   const [editId, setEditId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function loadPageData() {
+    try {
+      setIsLoading(true);
+      setError("");
+      const doctorId = getDoctorId();
+      const [appointmentsData, patientsData, servicesData] = await Promise.all([
+        apiRequest<Appointment[]>(`/doctors/${doctorId}/appointments`),
+        apiRequest<Patient[]>(`/doctors/${doctorId}/patients`),
+        apiRequest<Service[]>(`/doctors/${doctorId}/services`),
+      ]);
+
+      setAppointments(appointmentsData);
+      setPatients(patientsData);
+      setServices(servicesData);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при зареждане на часовете."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadPageData();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.target;
@@ -50,67 +95,90 @@ function Appointments() {
     });
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
 
     if (
-      formData.time === "" ||
-      formData.patientName === "" ||
-      formData.type === ""
+      formData.appointmentDate === "" ||
+      formData.appointmentTime === "" ||
+      formData.patientId === "" ||
+      formData.serviceId === ""
     ) {
       alert("Моля, попълнете всички полета.");
       return;
     }
 
-    if (editId !== null) {
-      const updatedAppointments = appointments.map((appointment) => {
-        if (appointment.id === editId) {
-          return {
-            ...appointment,
-            time: formData.time,
-            patientName: formData.patientName,
-            type: formData.type,
-            status: formData.status,
-          };
-        }
+    const payload = {
+      appointmentDate: formData.appointmentDate,
+      appointmentTime: formData.appointmentTime,
+      patientId: Number(formData.patientId),
+      serviceId: Number(formData.serviceId),
+      status: formData.status,
+    };
 
-        return appointment;
-      });
+    try {
+      setIsSaving(true);
+      const doctorId = getDoctorId();
+      const appointment =
+        editId !== null
+          ? await apiRequest<Appointment>(
+              `/doctors/${doctorId}/appointments/${editId}`,
+              {
+                method: "PUT",
+                body: JSON.stringify(payload),
+              }
+            )
+          : await apiRequest<Appointment>(`/doctors/${doctorId}/appointments`, {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
 
-      setAppointments(updatedAppointments);
+      setAppointments((currentAppointments) =>
+        editId !== null
+          ? currentAppointments.map((currentAppointment) =>
+              currentAppointment.id === editId ? appointment : currentAppointment
+            )
+          : [...currentAppointments, appointment]
+      );
       setEditId(null);
-    } else {
-      const newAppointment = {
-        id: Date.now(),
-        time: formData.time,
-        patientName: formData.patientName,
-        type: formData.type,
-        status: formData.status,
-      };
-
-      setAppointments([...appointments, newAppointment]);
+      setFormData(emptyFormData);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при запазване на час."
+      );
+    } finally {
+      setIsSaving(false);
     }
-
-    setFormData({
-      time: "",
-      patientName: "",
-      type: "",
-      status: "Предстоящ",
-    });
   }
-  function deleteAppointment(id: number) {
-    const filteredAppointments = appointments.filter(
-      (appointment) => appointment.id !== id
-    );
 
-    setAppointments(filteredAppointments);
+  async function deleteAppointment(id: number) {
+    try {
+      setError("");
+      const doctorId = getDoctorId();
+      await apiRequest(`/doctors/${doctorId}/appointments/${id}`, {
+        method: "DELETE",
+      });
+      setAppointments((currentAppointments) =>
+        currentAppointments.filter((appointment) => appointment.id !== id)
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при изтриване на час."
+      );
+    }
   }
 
   function editAppointment(appointment: Appointment) {
     setFormData({
-      time: appointment.time,
-      patientName: appointment.patientName,
-      type: appointment.type,
+      appointmentDate: appointment.appointmentDate,
+      appointmentTime: appointment.appointmentTime,
+      patientId: String(appointment.patientId),
+      serviceId: String(appointment.serviceId),
       status: appointment.status,
     });
 
@@ -131,27 +199,46 @@ function Appointments() {
 
         <form className="patient-form" onSubmit={handleSubmit}>
           <input
+            type="date"
+            name="appointmentDate"
+            value={formData.appointmentDate}
+            onChange={handleChange}
+          />
+
+          <input
             type="time"
-            name="time"
-            value={formData.time}
+            name="appointmentTime"
+            value={formData.appointmentTime}
             onChange={handleChange}
           />
 
-          <input
-            type="text"
-            name="patientName"
-            placeholder="Име на пациент"
-            value={formData.patientName}
+          <select
+            name="patientId"
+            value={formData.patientId}
             onChange={handleChange}
-          />
+            className="form-select"
+          >
+            <option value="">Изберете пациент</option>
+            {patients.map((patient) => (
+              <option key={patient.id} value={patient.id}>
+                {patient.firstName} {patient.lastName}
+              </option>
+            ))}
+          </select>
 
-          <input
-            type="text"
-            name="type"
-            placeholder="Тип преглед"
-            value={formData.type}
+          <select
+            name="serviceId"
+            value={formData.serviceId}
             onChange={handleChange}
-          />
+            className="form-select"
+          >
+            <option value="">Изберете услуга</option>
+            {services.map((service) => (
+              <option key={service.id} value={service.id}>
+                {service.name}
+              </option>
+            ))}
+          </select>
 
           <select
             name="status"
@@ -164,8 +251,12 @@ function Appointments() {
             <option value="Отменен">Отменен</option>
           </select>
 
-          <button type="submit" className="primary-btn">
-            {editId === null ? "+ Добави час" : "Запази промените"}
+          <button type="submit" className="primary-btn" disabled={isSaving}>
+            {isSaving
+              ? "Запазване..."
+              : editId === null
+                ? "+ Добави час"
+                : "Запази промените"}
           </button>
         </form>
       </div>
@@ -173,9 +264,13 @@ function Appointments() {
       <div className="patients-card">
         <h3>Записани часове</h3>
 
+        {error && <p className="form-message form-message-error">{error}</p>}
+        {isLoading && <p className="empty-message">Зареждане...</p>}
+
         <table className="patients-table">
           <thead>
             <tr>
+              <th>Дата</th>
               <th>Час</th>
               <th>Пациент</th>
               <th>Тип преглед</th>
@@ -187,7 +282,8 @@ function Appointments() {
           <tbody>
             {appointments.map((appointment) => (
               <tr key={appointment.id}>
-                <td>{appointment.time}</td>
+                <td>{appointment.appointmentDate}</td>
+                <td>{appointment.appointmentTime}</td>
                 <td>{appointment.patientName}</td>
                 <td>{appointment.type}</td>
                 <td>
@@ -210,6 +306,13 @@ function Appointments() {
                 </td>
               </tr>
             ))}
+            {appointments.length === 0 && !isLoading && (
+              <tr>
+                <td colSpan={6} className="empty-message">
+                  Няма записани часове.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

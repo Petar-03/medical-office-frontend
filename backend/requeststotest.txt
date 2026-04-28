@@ -6,9 +6,9 @@ PUT /api/doctors/:doctorId/profile OK
 PUT /api/doctors/:doctorId/password OK
 
 GET    /api/doctors/:doctorId/patients OK
-POST   /api/doctors/:doctorId/patients
-PUT    /api/doctors/:doctorId/patients/:patientId
-DELETE /api/doctors/:doctorId/patients/:patientId
+POST   /api/doctors/:doctorId/patients OK
+PUT    /api/doctors/:doctorId/patients/:patientId ОК
+DELETE /api/doctors/:doctorId/patients/:patientId ОК
 
 GET    /api/doctors/:doctorId/services OK
 POST   /api/doctors/:doctorId/services
@@ -16,7 +16,7 @@ PUT    /api/doctors/:doctorId/services/:serviceId
 DELETE /api/doctors/:doctorId/services/:serviceId
 
 GET    /api/doctors/:doctorId/appointments OK
-GET    /api/doctors/:doctorId/appointments?date=2026-04-27
+GET    /api/doctors/:doctorId/appointments?date=2026-04-27 OK
 POST   /api/doctors/:doctorId/appointments
 PUT    /api/doctors/:doctorId/appointments/:appointmentId
 DELETE /api/doctors/:doctorId/appointments/:appointmentId

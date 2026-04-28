@@ -1,36 +1,21 @@
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { apiRequest, getDoctorId } from "../api/client";
 
 type Service = {
   id: number;
   name: string;
   description: string;
+  price: number;
+};
+
+type ServiceFormData = {
+  name: string;
+  description: string;
   price: string;
 };
 
-type ServiceFormData = Omit<Service, "id">;
-
 function Services() {
-  const [services, setServices] = useState<Service[]>([
-    {
-      id: 1,
-      name: "Първичен преглед",
-      description: "Първоначален медицински преглед на пациент",
-      price: "50",
-    },
-    {
-      id: 2,
-      name: "Контролен преглед",
-      description: "Повторен преглед след проведено лечение",
-      price: "30",
-    },
-    {
-      id: 3,
-      name: "Консултация",
-      description: "Медицинска консултация със специалист",
-      price: "40",
-    },
-  ]);
-
+  const [services, setServices] = useState<Service[]>([]);
   const [formData, setFormData] = useState<ServiceFormData>({
     name: "",
     description: "",
@@ -38,6 +23,35 @@ function Services() {
   });
 
   const [editId, setEditId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function loadServices() {
+    try {
+      setIsLoading(true);
+      setError("");
+      const doctorId = getDoctorId();
+      const data = await apiRequest<Service[]>(`/doctors/${doctorId}/services`);
+      setServices(data);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при зареждане на услуги."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadServices();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
@@ -48,8 +62,9 @@ function Services() {
     });
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
 
     if (
       formData.name === "" ||
@@ -60,50 +75,74 @@ function Services() {
       return;
     }
 
-    if (editId !== null) {
-      const updatedServices = services.map((service) => {
-        if (service.id === editId) {
-          return {
-            ...service,
-            name: formData.name,
-            description: formData.description,
-            price: formData.price,
-          };
-        }
-
-        return service;
-      });
-
-      setServices(updatedServices);
-      setEditId(null);
-    } else {
-      const newService = {
-        id: Date.now(),
+    const payload = {
         name: formData.name,
         description: formData.description,
-        price: formData.price,
-      };
+      price: Number(formData.price),
+    };
 
-      setServices([...services, newService]);
+    try {
+      setIsSaving(true);
+      const doctorId = getDoctorId();
+      const service =
+        editId !== null
+          ? await apiRequest<Service>(`/doctors/${doctorId}/services/${editId}`, {
+              method: "PUT",
+              body: JSON.stringify(payload),
+            })
+          : await apiRequest<Service>(`/doctors/${doctorId}/services`, {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
+
+      setServices((currentServices) =>
+        editId !== null
+          ? currentServices.map((currentService) =>
+              currentService.id === editId ? service : currentService
+            )
+          : [...currentServices, service]
+      );
+      setEditId(null);
+      setFormData({
+        name: "",
+        description: "",
+        price: "",
+      });
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при запазване на услуга."
+      );
+    } finally {
+      setIsSaving(false);
     }
-
-    setFormData({
-      name: "",
-      description: "",
-      price: "",
-    });
   }
 
-  function deleteService(id: number) {
-    const filteredServices = services.filter((service) => service.id !== id);
-    setServices(filteredServices);
+  async function deleteService(id: number) {
+    try {
+      setError("");
+      const doctorId = getDoctorId();
+      await apiRequest(`/doctors/${doctorId}/services/${id}`, {
+        method: "DELETE",
+      });
+      setServices((currentServices) =>
+        currentServices.filter((service) => service.id !== id)
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Грешка при изтриване на услуга."
+      );
+    }
   }
 
   function editService(service: Service) {
     setFormData({
       name: service.name,
       description: service.description,
-      price: service.price,
+      price: String(service.price),
     });
 
     setEditId(service.id);
@@ -148,14 +187,21 @@ function Services() {
             onChange={handleChange}
           />
 
-          <button type="submit" className="primary-btn">
-            {editId === null ? "+ Добави услуга" : "Запази промените"}
+          <button type="submit" className="primary-btn" disabled={isSaving}>
+            {isSaving
+              ? "Запазване..."
+              : editId === null
+                ? "+ Добави услуга"
+                : "Запази промените"}
           </button>
         </form>
       </div>
 
       <div className="patients-card">
         <h3>Списък с услуги</h3>
+
+        {error && <p className="form-message form-message-error">{error}</p>}
+        {isLoading && <p className="empty-message">Зареждане...</p>}
 
         <table className="patients-table">
           <thead>
@@ -172,7 +218,7 @@ function Services() {
               <tr key={service.id}>
                 <td>{service.name}</td>
                 <td>{service.description}</td>
-                <td>{service.price} лв.</td>
+                <td>{Number(service.price).toFixed(2)} лв.</td>
                 <td>
                   <button
                     className="edit-btn"

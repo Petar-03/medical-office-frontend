@@ -91,34 +91,6 @@
   margin-right: auto;
 }
 
-.search-box {
-  width: 350px;
-  height: 48px;
-  border: 1px solid #d5dde8;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 16px;
-  color: #64748b;
-}
-
-.search-box span {
-  font-size: 24px;
-}
-
-.search-box input {
-  border: none;
-  outline: none;
-  width: 100%;
-  font-size: 16px;
-  color: #334155;
-}
-
-.search-box input::placeholder {
-  color: #94a3b8;
-}
-
 .doctor-box {
   display: flex;
   align-items: center;
@@ -131,16 +103,6 @@
   font-size: 24px;
   padding-right: 22px;
   border-right: 1px solid #e5e7eb;
-}
-
-.avatar {
-  width: 54px;
-  height: 54px;
-  background-color: #dbeafe;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* CONTENT */
@@ -227,6 +189,10 @@
   grid-template-columns: 1.4fr 0.95fr;
   gap: 22px;
   margin-top: 26px;
+}
+
+.dashboard-grid-expanded {
+  grid-template-columns: 1fr;
 }
 
 .appointments-card,
@@ -347,10 +313,6 @@
     padding: 24px;
   }
 
-  .search-box {
-    width: 100%;
-  }
-
   .stats-grid,
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -386,6 +348,11 @@
 
 .primary-btn:hover {
   background-color: #1d4ed8;
+}
+
+.primary-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .patients-card {
@@ -549,6 +516,27 @@
   cursor: pointer;
   padding-right: 22px;
   border-right: 1px solid #e5e7eb;
+  position: relative;
+}
+
+.bell-active {
+  color: #ea580c;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
 }
 
 .notifications-box {
@@ -579,6 +567,42 @@
 
 .notifications-box p:last-child {
   border-bottom: none;
+}
+
+.notification-alert {
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.notification-alert:last-child {
+  border-bottom: none;
+}
+
+.notification-alert strong,
+.notification-alert span,
+.notification-alert small {
+  display: block;
+}
+
+.notification-alert strong {
+  color: #ea580c;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.notification-alert span {
+  color: #0f172a;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.notification-alert small {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.notification-error {
+  color: #b91c1c;
 }
 
 .profile-menu-wrapper {
@@ -666,14 +690,6 @@
   color: #64748b;
 }
 
-.doctor-modal-avatar {
-  width: 92px;
-  height: 92px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-bottom: 16px;
-}
-
 .doctor-info-modal h2 {
   font-size: 28px;
   margin-bottom: 6px;
@@ -735,6 +751,12 @@
 
 .doctor-info-save-btn:hover {
   background-color: #1d4ed8;
+}
+
+.doctor-info-save-btn:disabled,
+.confirm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .logout-modal {
@@ -852,6 +874,28 @@
   color: white;
   font-size: 16px;
   cursor: pointer;
+}
+
+.login-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.form-message {
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.form-message-error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.form-message-success {
+  margin-top: 16px;
+  background-color: #dcfce7;
+  color: #15803d;
 }
 
 .register-link-btn {

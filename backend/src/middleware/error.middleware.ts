@@ -15,6 +15,8 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  void _next;
+
   if (error instanceof HttpError) {
     res.status(error.statusCode).json({ message: error.message });
     return;

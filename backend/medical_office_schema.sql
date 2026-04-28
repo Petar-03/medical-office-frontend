@@ -1,23 +1,40 @@
-CREATE DATABASE IF NOT EXISTS medical_office
+DROP DATABASE IF EXISTS medical_office_v2;
+
+CREATE DATABASE medical_office_v2
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE medical_office;
+USE medical_office_v2;
 
-CREATE TABLE IF NOT EXISTS doctors (
+CREATE TABLE doctors (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL,
   specialty VARCHAR(150) NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
+  password VARCHAR(255) NOT NULL,
   working_hours VARCHAR(50) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_doctors_name_specialty (first_name, last_name, specialty)
+  UNIQUE KEY uq_doctors_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS patients (
+CREATE TABLE doctor_sessions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  doctor_id BIGINT UNSIGNED NOT NULL,
+  token VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_doctor_sessions_token (token),
+  KEY idx_doctor_sessions_doctor (doctor_id),
+  CONSTRAINT fk_doctor_sessions_doctor
+    FOREIGN KEY (doctor_id) REFERENCES doctors (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE patients (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
@@ -32,19 +49,41 @@ CREATE TABLE IF NOT EXISTS patients (
   KEY idx_patients_phone (phone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS services (
+CREATE TABLE doctor_patients (
+  doctor_id BIGINT UNSIGNED NOT NULL,
+  patient_id BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (doctor_id, patient_id),
+  KEY idx_doctor_patients_patient (patient_id),
+  CONSTRAINT fk_doctor_patients_doctor
+    FOREIGN KEY (doctor_id) REFERENCES doctors (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT fk_doctor_patients_patient
+    FOREIGN KEY (patient_id) REFERENCES patients (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE services (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  doctor_id BIGINT UNSIGNED NOT NULL,
   name VARCHAR(150) NOT NULL,
   description TEXT NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_services_name (name),
+  UNIQUE KEY uq_services_doctor_name (doctor_id, name),
+  KEY idx_services_doctor (doctor_id),
+  CONSTRAINT fk_services_doctor
+    FOREIGN KEY (doctor_id) REFERENCES doctors (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
   CONSTRAINT chk_services_price_non_negative CHECK (price >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS appointments (
+CREATE TABLE appointments (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   appointment_date DATE NOT NULL,
   appointment_time TIME NOT NULL,
@@ -88,57 +127,49 @@ INNER JOIN patients ON patients.id = appointments.patient_id
 INNER JOIN doctors ON doctors.id = appointments.doctor_id
 INNER JOIN services ON services.id = appointments.service_id;
 
-INSERT INTO doctors (first_name, last_name, specialty, password_hash, working_hours)
+INSERT INTO doctors (first_name, last_name, email, specialty, password, working_hours)
 VALUES
-  ('Анна', 'Иванова', 'Обща медицина', '$2y$10$replace_with_real_hash_for_doctor_ivanova', '09:00-17:00')
-ON DUPLICATE KEY UPDATE
-  specialty = VALUES(specialty),
-  working_hours = VALUES(working_hours);
+  ('Анна', 'Иванова', 'anna.ivanova@example.com', 'Обща медицина', 'test1234', '09:00-17:00');
 
 INSERT INTO patients (first_name, last_name, phone, email, address)
 VALUES
   ('Мария', 'Петрова', '0888123456', 'maria@example.com', 'Варна'),
   ('Иван', 'Георгиев', '0877123456', 'ivan@example.com', 'Варна'),
-  ('Елица', 'Николова', '0899123456', 'elitsa@example.com', 'Добрич')
-ON DUPLICATE KEY UPDATE
-  first_name = VALUES(first_name),
-  last_name = VALUES(last_name),
-  phone = VALUES(phone),
-  address = VALUES(address);
+  ('Елица', 'Николова', '0899123456', 'elitsa@example.com', 'Добрич');
 
-INSERT INTO services (name, description, price)
-VALUES
-  ('Първичен преглед', 'Първоначален медицински преглед на пациент', 50.00),
-  ('Контролен преглед', 'Повторен преглед след проведено лечение', 30.00),
-  ('Консултация', 'Медицинска консултация със специалист', 40.00)
-ON DUPLICATE KEY UPDATE
-  description = VALUES(description),
-  price = VALUES(price);
+INSERT INTO doctor_patients (doctor_id, patient_id)
+SELECT doctors.id, patients.id
+FROM doctors
+INNER JOIN patients
+WHERE doctors.email = 'anna.ivanova@example.com'
+  AND patients.email IN ('maria@example.com', 'ivan@example.com', 'elitsa@example.com');
+
+INSERT INTO services (doctor_id, name, description, price)
+SELECT doctors.id, service_seed.name, service_seed.description, service_seed.price
+FROM doctors
+INNER JOIN (
+  SELECT 'Първичен преглед' AS name, 'Първоначален медицински преглед на пациент' AS description, 50.00 AS price
+  UNION ALL
+  SELECT 'Контролен преглед', 'Повторен преглед след проведено лечение', 30.00
+  UNION ALL
+  SELECT 'Консултация', 'Медицинска консултация със специалист', 40.00
+) AS service_seed
+WHERE doctors.email = 'anna.ivanova@example.com';
 
 INSERT INTO appointments (appointment_date, appointment_time, patient_id, doctor_id, service_id, status)
 SELECT '2026-04-27', '09:00:00', patients.id, doctors.id, services.id, 'Предстоящ'
 FROM patients
-INNER JOIN doctors
-  ON doctors.first_name = 'Анна'
-  AND doctors.last_name = 'Иванова'
-  AND doctors.specialty = 'Обща медицина'
-INNER JOIN services ON services.name = 'Контролен преглед'
-WHERE patients.email = 'maria@example.com'
-ON DUPLICATE KEY UPDATE
-  patient_id = VALUES(patient_id),
-  service_id = VALUES(service_id),
-  status = VALUES(status);
+INNER JOIN doctors ON doctors.email = 'anna.ivanova@example.com'
+INNER JOIN services
+  ON services.doctor_id = doctors.id
+  AND services.name = 'Контролен преглед'
+WHERE patients.email = 'maria@example.com';
 
 INSERT INTO appointments (appointment_date, appointment_time, patient_id, doctor_id, service_id, status)
 SELECT '2026-04-27', '10:30:00', patients.id, doctors.id, services.id, 'Предстоящ'
 FROM patients
-INNER JOIN doctors
-  ON doctors.first_name = 'Анна'
-  AND doctors.last_name = 'Иванова'
-  AND doctors.specialty = 'Обща медицина'
-INNER JOIN services ON services.name = 'Консултация'
-WHERE patients.email = 'ivan@example.com'
-ON DUPLICATE KEY UPDATE
-  patient_id = VALUES(patient_id),
-  service_id = VALUES(service_id),
-  status = VALUES(status);
+INNER JOIN doctors ON doctors.email = 'anna.ivanova@example.com'
+INNER JOIN services
+  ON services.doctor_id = doctors.id
+  AND services.name = 'Консултация'
+WHERE patients.email = 'ivan@example.com';

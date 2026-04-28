@@ -1,5 +1,24 @@
 import { useState } from "react";
 
+const API_BASE_URL = "http://localhost:3001/api";
+
+type Doctor = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  specialty: string;
+  workingHours: string;
+};
+
+type AuthResponse = {
+  data: {
+    token: string;
+    doctor: Doctor;
+  };
+  message: string;
+};
+
 type LoginProps = {
   onLogin: () => void;
 };
@@ -11,6 +30,8 @@ function Login({ onLogin }: LoginProps) {
     email: "",
     password: "",
   });
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const [registerData, setRegisterData] = useState({
     firstName: "",
@@ -20,6 +41,9 @@ function Login({ onLogin }: LoginProps) {
     password: "",
     workingHours: "",
   });
+  const [registerError, setRegisterError] = useState("");
+  const [registerSuccess, setRegisterSuccess] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const handleLoginChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -39,20 +63,52 @@ function Login({ onLogin }: LoginProps) {
     });
   };
 
-  const handleLoginSubmit = (event: React.FormEvent) => {
+  const handleLoginSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setLoginError("");
 
     if (loginData.email === "" || loginData.password === "") {
       alert("Моля, попълнете имейл и парола.");
       return;
     }
 
-    localStorage.setItem("isLoggedIn", "true");
-    onLogin();
+    try {
+      setIsLoggingIn(true);
+
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginData),
+      });
+
+      const result = (await response.json()) as AuthResponse;
+
+      if (!response.ok) {
+        throw new Error(result.message || "Входът беше неуспешен.");
+      }
+
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("authToken", result.data.token);
+      localStorage.setItem("doctorId", String(result.data.doctor.id));
+      localStorage.setItem("doctor", JSON.stringify(result.data.doctor));
+      onLogin();
+    } catch (error) {
+      setLoginError(
+        error instanceof Error
+          ? error.message
+          : "Възникна грешка при вход."
+      );
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
-  const handleRegisterSubmit = (event: React.FormEvent) => {
+  const handleRegisterSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setRegisterError("");
+    setRegisterSuccess("");
 
     if (
       registerData.firstName === "" ||
@@ -66,9 +122,42 @@ function Login({ onLogin }: LoginProps) {
       return;
     }
 
-    localStorage.setItem("registeredDoctor", JSON.stringify(registerData));
-    alert("Регистрацията е успешна. Вече можете да влезете.");
-    setIsRegisterMode(false);
+    try {
+      setIsRegistering(true);
+
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(registerData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Регистрацията беше неуспешна.");
+      }
+
+      setRegisterData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        specialty: "",
+        password: "",
+        workingHours: "",
+      });
+      setRegisterSuccess("Регистрацията е успешна. Вече можете да влезете.");
+      setIsRegisterMode(false);
+    } catch (error) {
+      setRegisterError(
+        error instanceof Error
+          ? error.message
+          : "Възникна грешка при регистрацията."
+      );
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   return (
@@ -110,8 +199,12 @@ function Login({ onLogin }: LoginProps) {
                 />
               </label>
 
-              <button type="submit" className="login-btn">
-                Влез в системата
+              {loginError && (
+                <p className="form-message form-message-error">{loginError}</p>
+              )}
+
+              <button type="submit" className="login-btn" disabled={isLoggingIn}>
+                {isLoggingIn ? "Влизане..." : "Влез в системата"}
               </button>
             </form>
 
@@ -194,8 +287,12 @@ function Login({ onLogin }: LoginProps) {
                 />
               </label>
 
-              <button type="submit" className="login-btn">
-                Регистрирай се
+              {registerError && (
+                <p className="form-message form-message-error">{registerError}</p>
+              )}
+
+              <button type="submit" className="login-btn" disabled={isRegistering}>
+                {isRegistering ? "Регистриране..." : "Регистрирай се"}
               </button>
             </form>
 
@@ -206,6 +303,9 @@ function Login({ onLogin }: LoginProps) {
               Вече имате акаунт? Влезте
             </button>
           </>
+        )}
+        {!isRegisterMode && registerSuccess && (
+          <p className="form-message form-message-success">{registerSuccess}</p>
         )}
       </div>
     </div>

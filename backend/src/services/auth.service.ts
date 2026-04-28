@@ -39,7 +39,16 @@ export class AuthService {
     }
 
     const token = await this.authModel.createSession(doctor.id);
-    const { password: _password, ...publicDoctor } = doctor;
+    const publicDoctor = {
+      id: doctor.id,
+      firstName: doctor.firstName,
+      lastName: doctor.lastName,
+      email: doctor.email,
+      specialty: doctor.specialty,
+      workingHours: doctor.workingHours,
+      createdAt: doctor.createdAt,
+      updatedAt: doctor.updatedAt,
+    };
 
     return { token, doctor: publicDoctor };
   }
