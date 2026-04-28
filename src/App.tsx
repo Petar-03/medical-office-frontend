@@ -1,3 +1,5 @@
+import { useState } from "react";
+import Login from "./pages/Login";
 import { Routes, Route } from "react-router-dom";
 import "./App.css";
 
@@ -10,6 +12,13 @@ import Appointments from "./pages/Appointments";
 import Services from "./pages/Services";
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
+    localStorage.getItem("isLoggedIn") === "true"
+  );
+
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
   return (
     <div className="app">
       <Sidebar />

@@ -781,3 +781,84 @@
 .confirm-btn:hover {
   background: #b91c1c;
 }
+
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eaf2ff, #f8fafc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+.login-card {
+  width: 460px;
+  max-width: 100%;
+  background: white;
+  border-radius: 20px;
+  padding: 34px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16);
+}
+
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.login-card h1 {
+  font-size: 30px;
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.login-form input {
+  height: 46px;
+  border: 1px solid #d5dde8;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 15px;
+  outline: none;
+}
+
+.login-form input:focus {
+  border-color: #2563eb;
+}
+
+.login-btn {
+  height: 48px;
+  border: none;
+  border-radius: 10px;
+  background-color: #2563eb;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.register-link-btn {
+  margin-top: 18px;
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 15px;
+}
